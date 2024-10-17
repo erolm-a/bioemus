@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 echo "[BioemuS] Setup environment variables and scripts permissions"
 DIR="$( cd "$( dirname -- "$0" )" && pwd )"
 export BIOEMUS_PATH="$DIR";

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 TAG="[BioemuS]"
 # Define environment variable for BIOEMUS_PATH if not already set

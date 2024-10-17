@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Remove packages no longer required
 sudo apt-get autoremove
 # Delete all apt cache 
