@@ -82,7 +82,6 @@ class Destexhe:
     NB_PSYN  = len(PID) # Kd et n excluded
 
     psyn = [0.0]*NB_PSYN
-    # USER >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     psyn[PID["AMPA_K1"]]    = 1.1e6 *1e-6   # [1/(mM.ms)]
     psyn[PID["AMPA_K2"]]    = 190   *1e-3   # [1/ms]
     psyn[PID["AMPA_Gsyn"]]  = 0.35          # 0.35 to 1.0 [nS]
@@ -103,7 +102,6 @@ class Destexhe:
     psyn[PID["GABAb_Esyn"]] = -95           # [mV]
     psyn_GABAb_Kd           = 100           #
     psyn_GABAb_n            = 4             # nb binding sites
-    # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def __init__(self) -> None:
         """Initialize destexhe synapses"""

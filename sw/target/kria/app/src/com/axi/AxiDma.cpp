@@ -14,6 +14,9 @@
 */
 
 #include "AxiDma.h"
+#include "AxiLite.h"
+#include "hw_config_com.h"
+#include "hw_config_system.h"
 #include "string.h"
 
 #if defined(DBG_PROBE_TSTAMP_STIM) || defined(DBG_PROBE_TSTAMP_SPIKES) || defined(DBG_PROBE_TSTAMP_WAVES)
@@ -25,6 +28,17 @@ static volatile int stop = 0;
 static volatile int end_rx_spikes = 0;
 static volatile int end_rx_vmem = 0;
 static int fd_dma_intr_rx;
+
+
+int single_neuron_id = 0;
+int network_window_ms = 50;
+int network_window_th = 100;
+int group_window_ms = 50;
+int group_window_th = 10;
+
+int* group_neurons_id_array;
+
+AxiLite* axilite_cpy;
 
 zmq::context_t ctx;
 zmq::socket_t sock_spk_mon(ctx, zmq::socket_type::push);
@@ -117,6 +131,18 @@ int AxiDma::monitoring(struct sw_config swconfig, HwControl hw_ctrl){
 	string fpath_save_spk	= swconfig.save_path + string("raster_") +  fname + ((swconfig.bin_fmt_save_spikes)?".bin":".csv");
 	string fpath_save_vmem	= swconfig.save_path + string("waves_")  +  fname + ((swconfig.bin_fmt_save_vmem)?".bin":".csv");
 	string fpath_save_stim	= swconfig.save_path + string("stim_")   +  fname + ((true)?".bin":".csv");
+
+	axilite_cpy = hw_ctrl.get_axilite();
+
+	single_neuron_id = swconfig.genoa_single_neuron_id;
+
+	network_window_ms = swconfig.genoa_network_burst_window;
+	network_window_th = swconfig.genoa_network_burst_threshold;
+
+	group_window_ms        = swconfig.genoa_group_burst_window;
+	group_window_th        = swconfig.genoa_group_burst_threshold;
+	group_neurons_id_array = swconfig.genoa_group_neuron_id_tab;
+
 
 	/**** Thread arguments ****/
 	// Spikes
@@ -374,13 +400,33 @@ void AxiDma::rxThreadSpikes(void* args){
 	int rx_counter			= 0;
 	int nb_read_dma			= nb_transfer;
 
+	// Genoa tmp stuff
+	int network_window_cumsum = 0;
+	int network_window_array[WHOLE_WINDOW_SIZE_MAX];
+	memset(network_window_array, 0, sizeof(network_window_array));
+	int write_ptr = 0;
+	int read_ptr  = (write_ptr+1 < network_window_th) ? write_ptr+1 : 0;
+
+	int group_window_cumsum = 0;
+	int group_window_array[WHOLE_WINDOW_SIZE_MAX];
+	memset(group_window_array, 0, sizeof(group_window_array));
+	int grp_write_ptr = 0;
+	int grp_read_ptr  = (grp_write_ptr+1 < group_window_th) ? grp_write_ptr+1 : 0;
+
 	#ifdef DBG_PROBE_TSTAMP_SPIKES
 		vector<chrono::time_point<std::chrono::high_resolution_clock>> tstamp_spikes;
 	#endif
 
 	// Open file to save data
 	FILE* f;
+	FILE* f_cumsum_stamp_single;
+	FILE* f_cumsum_stamp_network;
+	FILE* f_cumsum_stamp_group;
 	string fpath = save_path;
+	string dir_path = fpath.substr(0, fpath.rfind("/")+1);
+	string fsingle  = dir_path + string("tstamp_cumsum_single.csv");
+	string fnetwork = dir_path + string("tstamp_cumsum_network.csv");
+	string fgroup   = dir_path + string("tstamp_cumsum_group.csv");
 
 	if (save){
 		f = fopen(fpath.c_str(), "w");
@@ -394,7 +440,46 @@ void AxiDma::rxThreadSpikes(void* args){
 			fprintf(f, "time;neuron_id\n");
 		}	
 	}
+
 	
+	if (true){
+		f_cumsum_stamp_single = fopen(fsingle.c_str(), "w");
+		r = (f_cumsum_stamp_single==NULL) ? EXIT_FAILURE : EXIT_SUCCESS;
+		if (r == EXIT_FAILURE){
+			infoPrint(0, "OOF! Failed opening saving file for cumsum tstamp");
+			exit(EXIT_FAILURE);
+		}
+
+		if (true){
+			fprintf(f_cumsum_stamp_single, "time\n");
+		}	
+	}
+	
+	if (true){
+		f_cumsum_stamp_network = fopen(fnetwork.c_str(), "w");
+		r = (f_cumsum_stamp_network==NULL) ? EXIT_FAILURE : EXIT_SUCCESS;
+		if (r == EXIT_FAILURE){
+			infoPrint(0, "OOF! Failed opening saving file for cumsum tstamp");
+			exit(EXIT_FAILURE);
+		}
+
+		if (true){
+			fprintf(f_cumsum_stamp_network, "time\n");
+		}	
+	}
+	
+	if (true){
+		f_cumsum_stamp_group = fopen(fgroup.c_str(), "w");
+		r = (f_cumsum_stamp_group==NULL) ? EXIT_FAILURE : EXIT_SUCCESS;
+		if (r == EXIT_FAILURE){
+			infoPrint(0, "OOF! Failed opening saving file for cumsum tstamp");
+			exit(EXIT_FAILURE);
+		}
+
+		if (true){
+			fprintf(f_cumsum_stamp_group, "time\n");
+		}	
+	}
 
 	// Calculate number of buffer required to perform the required transfer size
 	int nb_buffer_for_transfer;
@@ -405,6 +490,10 @@ void AxiDma::rxThreadSpikes(void* args){
 	else{
 		nb_buffer_for_transfer = 1;
 	}
+
+	uint32_t stim_single_nrn_prev = 0;
+	uint32_t stimulate_0_prev = 0;
+	uint32_t stimulate_1_prev = 0;
 
 	for (int i = 0; i < nb_read_dma; i++){
 		// /!\ hypothesis: for now transfers always are smaller than buffer size
@@ -489,6 +578,125 @@ void AxiDma::rxThreadSpikes(void* args){
 				sock_spk_mon.send(zmq::buffer(spk_cnt, NB_NRN*sizeof(unsigned int)));
 			}
 		}
+		// Whole network cumsum for burst detection
+		if(true){
+			uint32_t stim_single_nrn      = 0;
+			uint32_t stimulate_0 	      = 0;
+			uint32_t stimulate_1 	      = 0;
+			uint32_t network_cumsum_ms    = 0;
+			uint32_t group_cumsum_ms      = 0;
+			uint32_t group_neurons_id_ptr = 0;
+
+			uint32_t group_neurons_id_next = group_neurons_id_array[0];
+
+
+			const unsigned int frame_size = (DATAWIDTH_TIME_STEP+NB_NRN)/(8*sizeof(unsigned int));
+			unsigned int tstamp = 0;
+
+			stim_single_nrn = 0;
+			for (int j = 0; j < ((transfer_size_bytes/sizeof(unsigned int))/frame_size); j++){
+				tstamp = buffer[frame_size*j];
+
+				// For all spike registers
+				for (int k = 0; k < NB_NRN/32; k++){
+					// Detect spike for all bits
+					for (int b = 0; b < 32; b++){
+						if ((buffer[frame_size*j + k + 1] & (1<<b)) != 0) {
+							network_cumsum_ms += 1;
+							if (group_neurons_id_next == 32*k+b) {
+								group_neurons_id_next = group_neurons_id_array[group_neurons_id_ptr++];
+								group_cumsum_ms += 1;
+							}
+							if (single_neuron_id == 32*k+b)
+								stim_single_nrn = 1;
+						}
+					}
+				}
+			}
+
+			// if (i >= 0 && i < 110) {
+			// 	printf("i: %d\n", i);
+			// 	printf("stimulate_0: %d\n", stimulate_0);
+			// 	printf("stimulate_1: %d\n", stimulate_1);
+			// 	printf("------------\n");
+			// 	printf("stim_single_nrn_prev: %d\n", stim_single_nrn_prev);
+			// 	printf("stimulate_0_prev: %d\n", stimulate_0_prev);
+			// 	printf("stimulate_1_prev: %d\n", stimulate_1_prev);
+			// 	printf("------------\n");
+			// 	printf("network_cumsum_ms: %d\n", network_cumsum_ms);
+			// 	printf("network_window_cumsum: %d\n", network_window_cumsum);
+			// 	printf("network_window_th: %d\n", network_window_th);
+			// 	printf("write_ptr: %d\n", write_ptr);
+			// 	printf("read_ptr: %d\n", read_ptr);
+			// 	printf("network_window_array[read_ptr]: %d\n", network_window_array[read_ptr]);
+			// 	// printf("------------\n");
+			// 	// printf("group_cumsum_ms: %d\n", group_cumsum_ms);
+			// 	// printf("group_window_cumsum: %d\n", group_window_cumsum);
+			// 	// printf("group_window_th: %d\n", group_window_th);
+			// 	printf("---------------------------------------------\n");
+			// }
+
+			// network
+			network_window_array[write_ptr] = network_cumsum_ms;
+			uint32_t network_fifo_out = network_window_array[read_ptr];
+
+			write_ptr += 1;
+			read_ptr  += 1;
+			if (write_ptr >= network_window_ms) write_ptr = 0;
+			if (read_ptr  >= network_window_ms) read_ptr  = 0;
+			
+			network_window_cumsum += network_cumsum_ms;
+			network_window_cumsum -= network_fifo_out;
+
+			if (network_window_cumsum >= network_window_th) stimulate_0 = 1;
+
+			// group
+			group_window_array[grp_write_ptr++] = group_cumsum_ms;
+			uint32_t group_fifo_out = group_window_array[grp_read_ptr++];
+
+			if (grp_write_ptr >= group_window_ms) grp_write_ptr = 0;
+			if (grp_read_ptr  >= group_window_ms) grp_read_ptr  = 0;
+
+			group_window_cumsum += group_cumsum_ms;
+			group_window_cumsum -= group_fifo_out;
+
+			if (group_window_cumsum >= group_window_th) stimulate_1 = 1;
+		
+
+			if (stim_single_nrn == 1 && stim_single_nrn_prev == 0)
+				fprintf(f_cumsum_stamp_single, "%u\n", tstamp);
+			if (stimulate_0 == 1 && stimulate_0_prev == 0)
+				fprintf(f_cumsum_stamp_network, "%u\n", tstamp);
+			if (stimulate_1 == 1 && stimulate_1_prev == 0)
+				fprintf(f_cumsum_stamp_group, "%u\n", tstamp);
+
+			stim_single_nrn_prev = stim_single_nrn;
+			stimulate_0_prev     = stimulate_0;
+			stimulate_1_prev     = stimulate_1;
+			
+			// if (i > 800 && i < 850) {
+			// 	printf("stimulate_0: %d\n", stimulate_0);
+			// 	printf("stimulate_1: %d\n", stimulate_1);
+			// 	printf("------------\n");
+			// 	printf("stim_single_nrn_prev: %d\n", stim_single_nrn_prev);
+			// 	printf("stimulate_0_prev: %d\n", stimulate_0_prev);
+			// 	printf("stimulate_1_prev: %d\n", stimulate_1_prev);
+			// 	printf("------------\n");
+			// 	printf("network_cumsum_ms: %d\n", network_cumsum_ms);
+			// 	printf("network_window_cumsum: %d\n", network_window_cumsum);
+			// 	printf("network_window_th: %d\n", network_window_th);
+			// 	printf("------------\n");
+			// 	printf("group_cumsum_ms: %d\n", group_cumsum_ms);
+			// 	printf("group_window_cumsum: %d\n", group_window_cumsum);
+			// 	printf("group_window_th: %d\n", group_window_th);
+			// 	printf("---------------------------------------------\n");
+			// 	printf("-------                               -------\n");
+			// 	printf("---------------------------------------------\n");
+			// }
+
+			axilite_cpy->write(stimulate_0, REGW_GENOA_ADDI_STIM_0);
+			axilite_cpy->write(stimulate_1, REGW_GENOA_ADDI_STIM_1);
+		}
 
 		/* Flip to next buffer treating them as a circular list, and possibly skipping some
 		* to show the results when prefetching is not happening
@@ -505,6 +713,10 @@ void AxiDma::rxThreadSpikes(void* args){
 
 	if (save)
 		fclose(f);
+		
+	fclose(f_cumsum_stamp_single);
+	fclose(f_cumsum_stamp_network);
+	fclose(f_cumsum_stamp_group);
 
 	#ifdef DBG_PROBE_TSTAMP_SPIKES
 		ofstream tstamp_file (swconfig.save_path + "tstamp_spikes_" +  fname + ".csv");

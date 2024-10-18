@@ -86,6 +86,14 @@ def gen_config(config_name:str, netw_conf_params:NetwConfParams, save_path:str="
     swconfig_builder.parameters["stim_delay_ms"]               = netw_conf_params.step_stim_delay_ms
     swconfig_builder.parameters["stim_duration_ms"]            = netw_conf_params.step_stim_duration_ms
 
+    swconfig_builder.parameters["genoa_pulse_width_us"]          = 1000
+    swconfig_builder.parameters["genoa_single_neuron_id"]        = 0
+    swconfig_builder.parameters["genoa_network_burst_threshold"] = 20
+    swconfig_builder.parameters["genoa_network_burst_window"]    = 50
+    swconfig_builder.parameters["genoa_group_burst_threshold"]   = 5
+    swconfig_builder.parameters["genoa_group_burst_window"]      = 50
+    swconfig_builder.parameters["genoa_group_neuron_id"]         = [n for n in range(15)]
+
     # Globals & Builders ####################################################################
     tsyn_row, wsyn_row    = ([] for i in range(2))
     tsyn,     wsyn        = ([] for i in range(2))
@@ -99,7 +107,6 @@ def gen_config(config_name:str, netw_conf_params:NetwConfParams, save_path:str="
     #                                                        
     # Custom model #################################################################
     if MODEL == "custom":
-        # USER >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         tnrn    = ["FS_nonoise"]*NB_NEURONS
 
         # tnrn[0] = "FS"
@@ -118,11 +125,9 @@ def gen_config(config_name:str, netw_conf_params:NetwConfParams, save_path:str="
         # SYN_MODE = "RANDOM"
         # SYN_MODE = "ONE_TO_ALL"
         # SYN_MODE = "ONE_TO_ONE"
-        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-
-        # USER >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Create synaptic conncetions
+
         # Synaptic types
         #      | source |
         # -----|--------|
@@ -166,13 +171,15 @@ def gen_config(config_name:str, netw_conf_params:NetwConfParams, save_path:str="
                         tsyn_i = "destexhe_gabaa"
                     else:
                         tsyn_i = "destexhe_none"
-                # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
                 tsyn_row.append(tsyn_dict[tsyn_i])
                 if tsyn_i == "destexhe_none":
                     wsyn_row.append(0.0)
                 else:
-                    wsyn_row.append(weight)
+                    if tsyn_i == "destexhe_ampa" or tsyn_i == "destexhe_gabaa":
+                        wsyn_row.append(1.0)
+                    else:
+                        wsyn_row.append(weight)
 
             tsyn.append(tsyn_row)
             wsyn.append(wsyn_row)

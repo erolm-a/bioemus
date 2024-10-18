@@ -4,7 +4,7 @@
 // ### AXILITE CORE 0 ###
 // #########################################################
 // Number of registers for Axilite : hh core 0
-#define NB_REGS_WRITE_AXILITE_CORE0 63
+#define NB_REGS_WRITE_AXILITE_CORE0 76
 #define NB_REGS_READ_AXILITE_CORE0 9
 
 // Registers ID for Axilite Core 0: hardware setup
@@ -48,19 +48,32 @@
 #define REGW_STIM_WIDTH 35
 #define REGW_STIM_DELAY 36
 #define REGW_USER_LEDS 37
-#define REGW_SEL_MON_DAC_BASE 38
-#define REGW_HHPARAM_BASE 47
+#define REGW_GENOA_PULSE_WIDTH 38
+#define REGW_GENOA_SINGLE_NRN_ID 39
+#define REGW_GENOA_NET_BURST_TH 40
+#define REGW_GENOA_NET_WINDOW_SIZE 41
+#define REGW_GENOA_GRP_BURST_TH 42
+#define REGW_GENOA_GRP_WINDOW_SIZE 43
+#define REGW_GENOA_GRP_NRN_ID_0 44
+#define REGW_GENOA_GRP_NRN_ID_1 45
+#define REGW_GENOA_GRP_NRN_ID_2 46
+#define REGW_GENOA_GRP_NRN_ID_3 47
+#define REGW_GENOA_GRP_NRN_ID_4 48
+#define REGW_GENOA_ADDI_STIM_0 49
+#define REGW_GENOA_ADDI_STIM_1 50
+#define REGW_SEL_MON_DAC_BASE 51
+#define REGW_HHPARAM_BASE 60
 
 // Read registers
-#define REGR_V_NEW 63
-#define REGR_WADDR_SEL_MON_LP 64
-#define REGR_WADDR_IONRATE_LP 65
-#define REGR_WADDR_HHPARAM_LP 66
-#define REGR_WADDR_SYNRATE_BV_LP 67
-#define REGR_WADDR_SYNRATE_TV_LP 68
-#define REGR_WADDR_SN_GABAB_LP 69
-#define REGR_WADDR_SETUP_PSYN_LP 70
-#define REGR_WADDR_TWSYN_LP 71
+#define REGR_V_NEW 76
+#define REGR_WADDR_SEL_MON_LP 77
+#define REGR_WADDR_IONRATE_LP 78
+#define REGR_WADDR_HHPARAM_LP 79
+#define REGR_WADDR_SYNRATE_BV_LP 80
+#define REGR_WADDR_SYNRATE_TV_LP 81
+#define REGR_WADDR_SN_GABAB_LP 82
+#define REGR_WADDR_SETUP_PSYN_LP 83
+#define REGR_WADDR_TWSYN_LP 84
 
 // Bit ID in registers for Axilite : mhh core 0
 // ---

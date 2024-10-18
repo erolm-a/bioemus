@@ -2,7 +2,7 @@
 #define __HW_CONFIG_SYSTEM_H__
  
 #define HW_VERSION "0.1.1"
-#define PRJ_ROOT_PATH "C:/Work/Projects/bioemus-dev/"
+#define PRJ_ROOT_PATH "C:/phd/projects/bioemus-dev/"
 #define CLOCK_FREQUENCY_MHZ 400.0
 #define HW_FPGA_ARCH "ZYNQMP"
 #define HW_FPGA_ARCH_ZYNQMP
@@ -53,5 +53,11 @@
 #define SFI_SN_GABAB_OUT_DEC 16
 #define SFI_PMUL_GSYN_INT 2
 #define SFI_PMUL_GSYN_DEC 16
+// ---
+// Genoa setup additional
+// ---
+#define NB_GROUP_OF_NEURONS_MAX 15
+#define WHOLE_WINDOW_SIZE_MAX 500
+#define WHOLE_WINDOW_SIZE_MAX_PW2 9
 // ---
 #endif

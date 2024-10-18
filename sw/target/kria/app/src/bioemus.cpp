@@ -95,6 +95,33 @@ int main(int argc, char* argv[])
     r = hw_cfg.apply();
     statusPrint(r, "Apply hardware configuration");
 
+    // Genova exp. configuration
+    uint32_t pulse_width_ccy = CLOCK_FREQUENCY_MHZ * (((double) swconfig.genoa_pulse_width_us));
+    axilite_hw_setup.write(pulse_width_ccy,                         REGW_GENOA_PULSE_WIDTH);
+    axilite_hw_setup.write(swconfig.genoa_single_neuron_id,         REGW_GENOA_SINGLE_NRN_ID);
+    axilite_hw_setup.write(swconfig.genoa_network_burst_threshold,  REGW_GENOA_NET_BURST_TH);
+    axilite_hw_setup.write(swconfig.genoa_network_burst_window,     REGW_GENOA_NET_WINDOW_SIZE);
+    axilite_hw_setup.write(swconfig.genoa_group_burst_threshold,    REGW_GENOA_GRP_BURST_TH);
+    axilite_hw_setup.write(swconfig.genoa_group_burst_window,       REGW_GENOA_GRP_WINDOW_SIZE);
+
+    uint32_t genoa_grp_nrn_id_tmp = 0;
+
+    genoa_grp_nrn_id_tmp = ((swconfig.genoa_group_neuron_id[2] & 0x3ff) << 20)  + ((swconfig.genoa_group_neuron_id[1] & 0x3ff) << 10)  + ((swconfig.genoa_group_neuron_id[0] & 0x3ff) << 0);
+    axilite_hw_setup.write(genoa_grp_nrn_id_tmp, REGW_GENOA_GRP_NRN_ID_0);
+
+    genoa_grp_nrn_id_tmp = ((swconfig.genoa_group_neuron_id[5] & 0x3ff) << 20)  + ((swconfig.genoa_group_neuron_id[4] & 0x3ff) << 10)  + ((swconfig.genoa_group_neuron_id[3] & 0x3ff) << 0);
+    axilite_hw_setup.write(genoa_grp_nrn_id_tmp, REGW_GENOA_GRP_NRN_ID_1);
+
+    genoa_grp_nrn_id_tmp = ((swconfig.genoa_group_neuron_id[8] & 0x3ff) << 20)  + ((swconfig.genoa_group_neuron_id[7] & 0x3ff) << 10)  + ((swconfig.genoa_group_neuron_id[6] & 0x3ff) << 0);
+    axilite_hw_setup.write(genoa_grp_nrn_id_tmp, REGW_GENOA_GRP_NRN_ID_2);
+
+    genoa_grp_nrn_id_tmp = ((swconfig.genoa_group_neuron_id[11] & 0x3ff) << 20) + ((swconfig.genoa_group_neuron_id[10] & 0x3ff) << 10) + ((swconfig.genoa_group_neuron_id[9] & 0x3ff) << 0);
+    axilite_hw_setup.write(genoa_grp_nrn_id_tmp, REGW_GENOA_GRP_NRN_ID_3);
+
+    genoa_grp_nrn_id_tmp = ((swconfig.genoa_group_neuron_id[14] & 0x3ff) << 20) + ((swconfig.genoa_group_neuron_id[13] & 0x3ff) << 10) + ((swconfig.genoa_group_neuron_id[12] & 0x3ff) << 0);
+    axilite_hw_setup.write(genoa_grp_nrn_id_tmp, REGW_GENOA_GRP_NRN_ID_4);
+
+
     // Hardware instance monitoring
     HwMonitoring hw_mon(&axilite_hw_setup, hw_cfg.getNbNrn());  // Hardware monitoring
 

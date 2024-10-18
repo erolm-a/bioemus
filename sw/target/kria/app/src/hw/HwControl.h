@@ -49,6 +49,7 @@ class HwControl{
         int sendStimTrigger();
         int armStimTrigger();
         int setSweepProgressLed(uint8_t sweep_progress);
+        AxiLite* get_axilite();
 };
 
 #endif

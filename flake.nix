@@ -53,6 +53,9 @@
                 black
               ]))
           ];
+          shellHook = ''
+            source ./sw/host/init.sh > /dev/null
+          '';
         };
         /* packages.default = derivation {
              inherit system name src;

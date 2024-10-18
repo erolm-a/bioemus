@@ -1,4 +1,4 @@
-# *.bit
+*.bit
 *.bin
-# *.dtsi
+*.dtsi
 *.dtbo

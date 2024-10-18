@@ -192,3 +192,13 @@ int HwControl::setSweepProgressLed(uint8_t sweep_progress){
 
     return r;
 }
+
+
+/***************************************************************************
+ * Get AxiLite pointer
+ * 
+ * @return AxiLite*
+****************************************************************************/
+AxiLite* HwControl::get_axilite(){
+    return (AxiLite*) _axilite;
+}

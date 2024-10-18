@@ -33,15 +33,18 @@ class SwConfigFile:
         "ip_zmq_spikes"               : "tcp://*:5557",
         "ip_zmq_vmem"                 : "tcp://*:5558",
         "ip_zmq_stim"                 : "tcp://192.168.137.1:5559",
-        "bin_fmt_save_spikes"         : True,
-        "bin_fmt_save_vmem"           : True,
-        "bin_fmt_send_spikes"         : True,
-        "bin_fmt_send_vmem"           : True,
-        "nb_tstamp_per_spk_transfer"  : 100,
+        "nb_tstamp_per_spk_transfer"  : 1,
         "nb_tstep_per_vmem_transfer"  : 96,
         "en_stim"                     : False,
         "stim_delay_ms"               : 1,
-        "stim_duration_ms"            : 1
+        "stim_duration_ms"            : 1,
+        "genoa_pulse_width_us"          : 1000,
+        "genoa_single_neuron_id"        : 0,
+        "genoa_network_burst_threshold" : 800,
+        "genoa_network_burst_window"    : 50,
+        "genoa_group_burst_threshold"   : 20,
+        "genoa_group_burst_window"      : 50,
+        "genoa_group_neuron_id"         : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     }
 
     def __init__(self) -> None:
